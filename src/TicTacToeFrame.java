@@ -10,21 +10,24 @@ public class TicTacToeFrame extends JFrame implements ActionListener
     private JPanel mainPanel;
     private JPanel boardPanel;
     private JPanel controlPanel;
+    private JButton quitButton;
+
     private static final int ROW = 3;
     private static final int COL = 3;
-    private int iMoveCount;
+    private static int iMoveCount;
+    private static int [] rowPredictIndexes;
+    private static int [] colPredictIndexes;
     private static TicTacToeButton board[][] = new TicTacToeButton[ROW][COL];
-    private JButton quitButton;
 
     public TicTacToeFrame(String titleFrame)
     {
         setTitle(titleFrame);
-        
+
         iMoveCount = 0;
-        
+
         mainPanel = new JPanel();
         boardPanel = new JPanel();
-        
+
         for(int row=0; row<3;  row++)
         {
             for(int col=0; col<3; col++)
@@ -35,7 +38,7 @@ public class TicTacToeFrame extends JFrame implements ActionListener
         }
     }
 
-    public void ResetGame()
+    private static void ResetGame()
     {
         for(int row=0; row<3;  row++)
         {
@@ -44,14 +47,14 @@ public class TicTacToeFrame extends JFrame implements ActionListener
                 board[row][col].SetEmptyState();
             }
         }
-        
+
         iMoveCount = 0;
     }
-    
-    public void displayMessageDialog(String dlgMessage)
+
+    private static void displayMessageDialog(String dlgMessage)
     {
-        JOptionPane.showMessageDialog(this, dlgMessage);
-        int iGameReplay = JOptionPane.showConfirmDialog(this, "Do you Want to Play again", "Restart Game", JOptionPane.YES_NO_OPTION);
+        JOptionPane.showMessageDialog(null, dlgMessage);
+        int iGameReplay = JOptionPane.showConfirmDialog(null, "Do you Want to Play again", "Restart Game", JOptionPane.YES_NO_OPTION);
 
         if(iGameReplay == JOptionPane.YES_OPTION)
         {
@@ -62,70 +65,107 @@ public class TicTacToeFrame extends JFrame implements ActionListener
             System.exit(0);
         }
     }
-    
-    public void doMove(TicTacToeButton buttonClicked, String currentPlayer)
+
+    private static boolean doMove(TicTacToeButton buttonClicked, String currentPlayer, int currentRow, int currentCol)
     {
+        boolean playerWins = false;
+
         if(buttonClicked.EmptyState())
         {
             if(currentPlayer.equals("X")) buttonClicked.SetXState();
             else if(currentPlayer.equals("O")) buttonClicked.SetOState();
-            
+
             iMoveCount++;
             if(iMoveCount >= 5)
             {
-                if(isWin(currentPlayer))
+                playerWins = isWin(currentPlayer, currentRow, currentCol);
+
+                if(!playerWins && (iMoveCount == 7))
                 {
-                    displayMessageDialog(currentPlayer + " Wins");
+                    boolean isPredictTie = predictTie();
+
+                    if(isPredictTie) displayMessageDialog("Game Will Tie Anyway");
                 }
-                else if((iMoveCount >= 8) && isTie())
+                if(!playerWins && (iMoveCount == 9))
                 {
-                    displayMessageDialog("Game Ties");
+                    displayMessageDialog("Full Board Tie");
                 }
             }
         }
         else
         {
-            JOptionPane.showMessageDialog(this, "Illegal Move");
+            JOptionPane.showMessageDialog(null, "Position Already Selected by Player " + buttonClicked.getText() + "\nPlease Select Other Position");
         }
+
+        return playerWins;
     }
-    
+
+    private static boolean doPredictionMove(TicTacToeButton buttonPredicted, String currentPlayer, int currentRow, int currentCol)
+    {
+        boolean playerWins = false;
+
+        if(buttonPredicted.EmptyState())
+        {
+            if(currentPlayer.equals("X")) buttonPredicted.SetPredictXState();
+            else if(currentPlayer.equals("O")) buttonPredicted.SetPredictOState();
+
+            playerWins = isWin(currentPlayer, currentRow, currentCol);
+        }
+
+        return playerWins;
+    }
+
     public void actionPerformed(ActionEvent e)
-    {  
+    {
         TicTacToeButton buttonClicked = (TicTacToeButton)e.getSource();
+
+        int currentRow = buttonClicked.getRowIndex();
+        int currentCol = buttonClicked.getColIndex();
+
+        boolean bIsWin = false;
+
         if((iMoveCount == 0) || (iMoveCount == 2) || (iMoveCount == 4) || (iMoveCount == 6) || (iMoveCount == 8))
         {
-            doMove(buttonClicked, "X");
+            bIsWin = doMove(buttonClicked, "X", currentRow, currentCol);
+            if(bIsWin)
+            {
+                displayMessageDialog("X Wins");
+            }
         }
         else if((iMoveCount == 1) || (iMoveCount == 3) || (iMoveCount == 5) || (iMoveCount == 7))
         {
-            doMove(buttonClicked, "O");
+            bIsWin = doMove(buttonClicked, "O", currentRow, currentCol);
+            if(bIsWin)
+            {
+                displayMessageDialog("O Wins");
+            }
         }
-    } 
-    
+    }
+
     public void SetTicTacToeFrameDisplay()
     {
         mainPanel = new JPanel();
-        
+
         createTicTacToeButtonPanel();
         createControlPanel();
-        
+
         mainPanel.setLayout(new BorderLayout());
-        
+
         mainPanel.add(boardPanel, BorderLayout.CENTER);
         mainPanel.add(controlPanel, BorderLayout.SOUTH);
-        
+
         add(mainPanel);
     }
-    
-    public void createTicTacToeButtonPanel()
+
+    private void createTicTacToeButtonPanel()
     {
         boardPanel = new JPanel();
-        
+
         GridLayout buttonPanelLayout = new GridLayout(3, 3);
-        
+
         boardPanel.setBounds(0, 0, 400, 400);
         boardPanel.setLayout(buttonPanelLayout);
-        
+
         for(int row=0; row<3;  row++)
         {
             for(int col=0; col<3; col++)
@@ -134,104 +174,145 @@ public class TicTacToeFrame extends JFrame implements ActionListener
             }
         }
     }
-    
-    public void createControlPanel()
+
+    private void createControlPanel()
     {
         controlPanel = new JPanel();
-        
+
         quitButton = new JButton("Quit");
         quitButton.setFont(new Font(Font.DIALOG, Font.BOLD, 48));
-        
+
         quitButton.addActionListener(e -> System.exit(0));
         controlPanel.add(quitButton);
     }
-    
-    public int getMoveCount()
-    {
-        return iMoveCount;
-    }
-    
-    // checks to see if there is a win state on the current board for the specified player (X or O) This method in turn calls three additional methods that break down the 3 kinds of wins that are possible.
-    private static boolean isWin(String player)
+
+    // checks to see if there is a win state on the current board for the specified currentPlayer (X or O) This method in turn calls three additional methods that break down the 3 kinds of wins that are possible.
+    private static boolean isWin(String currentPlayer, int currentRow, int currentCol)
     {
         boolean win = false;
 
-        win |= isColWin(player);
-        win |= isRowWin(player);
-        win |= isDiagonalWin(player);
+        win |= isRowWin(currentPlayer, currentRow);
+        win |= isColWin(currentPlayer, currentCol);
+        win |= isDiagonalWin(currentPlayer, currentRow, currentCol);
 
         return win;
     }
 
-    // checks for a col win for specified player
-    private static boolean isColWin(String player)
+    // checks for a col win for specified currentPlayer
+    private static boolean isColWin(String currentPlayer, int currentCol)
     {
         boolean colwin = false;
 
-        if(player.equals("X"))
+        if(currentPlayer.equals("X"))
         {
-            if ((board[0][0].XState()) && (board[1][0].XState()) && (board[2][0].XState()))  colwin = true;
-            if ((board[0][1].XState()) && (board[1][1].XState()) && (board[2][1].XState()))  colwin = true;
-            if ((board[0][2].XState()) && (board[1][2].XState()) && (board[2][2].XState()))  colwin = true;
+            if ((board[0][currentCol].XState())
+                    && (board[1][currentCol].XState())
+                    && (board[2][currentCol].XState()))  colwin = true;
         }
-        else if(player.equals("O"))
+        else if(currentPlayer.equals("O"))
         {
-            if ((board[0][0].OState()) && (board[1][0].OState()) && (board[2][0].OState()))  colwin = true;
-            if ((board[0][1].OState()) && (board[1][1].OState()) && (board[2][1].OState()))  colwin = true;
-            if ((board[0][2].OState()) && (board[1][2].OState()) && (board[2][2].OState()))  colwin = true;
+            if ((board[0][currentCol].OState())
+                    && (board[1][currentCol].OState())
+                    && (board[2][currentCol].OState()))  colwin = true;
         }
 
         return colwin;
     }
 
-    // checks for a row win for the specified player
-    private static boolean isRowWin(String player)
+    // checks for a row win for the specified currentPlayer
+    private static boolean isRowWin(String currentPlayer, int currentRow)
     {
         boolean rowwin = false;
 
-        if(player.equals("X"))
+        if(currentPlayer.equals("X"))
         {
-            if ((board[0][0].XState()) && (board[0][1].XState()) && (board[0][2].XState()))  rowwin = true;
-            if ((board[1][0].XState()) && (board[1][1].XState()) && (board[1][2].XState()))  rowwin = true;
-            if ((board[2][0].XState()) && (board[2][1].XState()) && (board[2][2].XState()))  rowwin = true;
+            if ((board[currentRow][0].XState())
+                    && (board[currentRow][1].XState())
+                    && (board[currentRow][2].XState()))  rowwin = true;
         }
-        else if(player.equals("O"))
+        else if(currentPlayer.equals("O"))
         {
-            if ((board[0][0].OState()) && (board[0][1].OState()) && (board[0][2].OState()))  rowwin = true;
-            if ((board[1][0].OState()) && (board[1][1].OState()) && (board[1][2].OState()))  rowwin = true;
-            if ((board[2][0].OState()) && (board[2][1].OState()) && (board[2][2].OState()))  rowwin = true;
+            if ((board[currentRow][0].OState())
+                    && (board[currentRow][1].OState())
+                    && (board[currentRow][2].OState()))  rowwin = true;
         }
 
         return rowwin;
     }
 
-    // checks for a diagonal win for the specified player
-    private static boolean isDiagonalWin(String player)
+    // checks for a diagonal win for the specified currentPlayer
+    private static boolean isDiagonalWin(String currentPlayer, int currentRow, int currentCol)
     {
         boolean diagonalwin = false;
 
-        if(player.equals("X"))
+        if(currentRow == currentCol)
         {
-            if ((board[0][0].XState()) && (board[1][1].XState()) && (board[2][2].XState()))  diagonalwin = true;
-            if ((board[0][2].XState()) && (board[1][1].XState()) && (board[2][0].XState()))  diagonalwin = true;
+            if(currentPlayer.equals("X"))
+            {
+                if ((board[0][0].XState()) && (board[1][1].XState()) && (board[2][2].XState()))
+                    diagonalwin = true;
+            }
+            else if(currentPlayer.equals("O"))
+            {
+                if ((board[0][0].OState()) && (board[1][1].OState()) && (board[2][2].OState()))
+                    diagonalwin = true;
+            }
         }
-        else if(player.equals("O"))
+        if((Math.abs(currentRow - currentCol) == 2) || ((currentRow == 1) && (currentCol == 1)))
         {
-            if ((board[0][0].OState()) && (board[1][1].OState()) && (board[2][2].OState()))  diagonalwin = true;
-            if ((board[0][2].OState()) && (board[1][1].OState()) && (board[2][0].OState()))  diagonalwin = true;
+            if(currentPlayer.equals("X"))
+            {
+                if ((board[0][2].XState()) && (board[1][1].XState()) && (board[2][0].XState()))
+                    diagonalwin = true;
+            }
+            else if(currentPlayer.equals("O"))
+            {
+                if ((board[0][2].OState()) && (board[1][1].OState()) && (board[2][0].OState()))
+                    diagonalwin = true;
+            }
         }
 
         return diagonalwin;
     }
 
-    // checks for a tie condition: all spaces on the board are filled OR there is an X and an O in every win vector (i.e. all possible 8 wins are blocked by having both and X and an O in them.)
-    private static boolean isTie()
+    private static void checkEmptyState()
     {
-        boolean tie = false;
+        rowPredictIndexes = new int[2];
+        colPredictIndexes = new int[2];
+        int index = 0;
 
-        tie |= !isWin("X");
-        tie |= !isWin("O");
+        for(int row=0; row<3;  row++)
+        {
+            for(int col=0; col<3; col++)
+            {
+                if(board[row][col].EmptyState())
+                {
+                    rowPredictIndexes[index] = row;
+                    colPredictIndexes[index] = col;
+                    index++;
+                }
+            }
+        }
+    }
 
-        return tie;
+    private static boolean predictTie()
+    {
+        boolean isPredictTie = false;
+
+        checkEmptyState();
+
+        isPredictTie = doPredictionMove(board[rowPredictIndexes[0]][colPredictIndexes[0]], "O", rowPredictIndexes[0], colPredictIndexes[0]);
+        isPredictTie |= doPredictionMove(board[rowPredictIndexes[1]][colPredictIndexes[1]], "X", rowPredictIndexes[1], colPredictIndexes[1]);
+
+        board[rowPredictIndexes[0]][colPredictIndexes[0]].SetPredictEmptyState();
+        board[rowPredictIndexes[1]][colPredictIndexes[1]].SetPredictEmptyState();
+
+        isPredictTie |= doPredictionMove(board[rowPredictIndexes[0]][colPredictIndexes[0]], "X", rowPredictIndexes[0], colPredictIndexes[0]);
+        isPredictTie |= doPredictionMove(board[rowPredictIndexes[1]][colPredictIndexes[1]], "O", rowPredictIndexes[1], colPredictIndexes[1]);
+
+        board[rowPredictIndexes[0]][colPredictIndexes[0]].SetPredictEmptyState();
+        board[rowPredictIndexes[1]][colPredictIndexes[1]].SetPredictEmptyState();
+
+        return !isPredictTie;
     }
 }
